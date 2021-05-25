@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+
+{% for msg in get_flashed_messages() %}
+
+<h3>{{ msg }}</h3>
+
+{% endfor %}
+
+
+<p>You have successfully completed the survey.  Thank you!</p>
+<form action="/">
+    <button>Return Home</button>
+</form>
+{% endblock %}
