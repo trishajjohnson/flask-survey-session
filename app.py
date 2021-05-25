@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, redirect, flash, session
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey as survey
 
@@ -8,15 +8,13 @@ app.config['SECRET_KEY'] = 'secretkey'
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 debug = DebugToolbarExtension(app)
 
-RESPONSES = []
+RESPONSES = "responses"
 
 
 @app.route('/')
 def home_page():
-
-    """Shows homepage with start survey button"""
     
-    RESPONSES.clear()
+    """Shows homepage with start survey button"""
     
     return render_template('start_survey.html', survey=survey)
 
@@ -26,8 +24,8 @@ def start_survey():
 
     """Clears RESPONSES of previous answers, sets to an empty list.  Then redirects to first question of survey."""
 
-    RESPONSES.clear()
-
+    session[RESPONSES] = []
+    
     return redirect('/questions/0')
 
 
@@ -37,10 +35,12 @@ def handle_answer():
     """Retrieves answer from form, appends answer to RESPONSES list and redirects to next question"""
 
     answer = request.form["answer"]
-    RESPONSES.append(answer)
-
-    if len(RESPONSES) < len(survey.questions):
-        num = len(RESPONSES)
+    responses = session[RESPONSES]
+    responses.append(answer)
+    session[RESPONSES] = responses
+    
+    if len(session[RESPONSES]) < len(survey.questions):
+        num = len(session[RESPONSES])
         return redirect(f'/questions/{num}')
 
     else:
@@ -54,32 +54,32 @@ def display_question(qnum):
     """Takes you to the first question of the survey after the start button is clicked"""
     
     # breakpoint()
-    if RESPONSES is None:
+    if session[RESPONSES] is None:
         flash("Please click Start Survey!")
         return redirect('/')
 
-    elif len(RESPONSES) == len(survey.questions):
+    elif len(session[RESPONSES]) == len(survey.questions):
         flash("You have already completed the survey, thank you!")
         flash("If you'd like to take another survey, please click Return Home!")
         return redirect('/survey-complete')
 
-    elif len(RESPONSES) == 0 and qnum > 0 and qnum < len(survey.questions):
+    elif len(session[RESPONSES]) == 0 and qnum > 0 and qnum < len(survey.questions):
         flash("Please click Start Survey and take questions in order!")
         return redirect('/')
 
-    elif len(RESPONSES) == 0 and qnum >= len(survey.questions):
+    elif len(session[RESPONSES]) == 0 and qnum >= len(survey.questions):
         flash(f"There is only { len(survey.questions) } questions in the survey. Question #{qnum + 1} does not exist.")
         flash("Please click Start Survey and take survey questions in order!")
         return redirect('/')
 
-    elif len(RESPONSES) > 0 and len(RESPONSES) < len(survey.questions) and qnum >= len(survey.questions):
+    elif len(session[RESPONSES]) > 0 and len(session[RESPONSES]) < len(survey.questions) and qnum >= len(survey.questions):
         flash(f"There is only { len(survey.questions) } questions in the survey. Question #{qnum + 1} does not exist.")
         flash("Please take survey questions in order!")
-        return redirect(f'/questions/{ len(RESPONSES) }')
+        return redirect(f'/questions/{ len(session[RESPONSES]) }')
 
-    elif len(RESPONSES) != qnum:
+    elif len(session[RESPONSES]) != qnum:
         flash("Please take survey questions in order!")
-        return redirect(f'/questions/{ len(RESPONSES) }')
+        return redirect(f'/questions/{ len(session[RESPONSES]) }')
     
     
     question = survey.questions[qnum]
